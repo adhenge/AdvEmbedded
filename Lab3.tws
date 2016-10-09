@@ -1,0 +1,17 @@
+[HIMDBVersion]
+2.0
+[DATABASE_VERSION]
+"1.2" 
+[CURRENT_PROJECT]
+"Lab3" 
+[GENERAL_DATA]
+[BREAKPOINTS]
+[OPEN_WORKSPACE_FILES]
+"C:\Users\akshay\Documents\college work\advance embedded\Lab3\Lab3\src\sci_async_main.c" 
+"C:\Users\akshay\Documents\college work\advance embedded\Lab3\Lab3\src\uart.c" 
+[WORKSPACE_FILE_STATES]
+"C:\Users\akshay\Documents\college work\advance embedded\Lab3\Lab3\src\sci_async_main.c" 0 0 951 285 0 0 
+"C:\Users\akshay\Documents\college work\advance embedded\Lab3\Lab3\src\uart.c" -8 -31 1101 458 1 1 
+[LOADED_PROJECTS]
+"Lab3" 
+[END]
