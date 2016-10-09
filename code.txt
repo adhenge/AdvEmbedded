@@ -1,0 +1,333 @@
+/*******************************************************************************
+* DISCLAIMER
+* This software is supplied by Renesas Electronics Corporation and is only 
+* intended for use with Renesas products. No other uses are authorized. This 
+* software is owned by Renesas Electronics Corporation and is protected under
+* all applicable laws, including copyright laws.
+* THIS SOFTWARE IS PROVIDED "AS IS" AND RENESAS MAKES NO WARRANTIES REGARDING
+* THIS SOFTWARE, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING BUT NOT
+* LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE 
+* AND NON-INFRINGEMENT. ALL SUCH WARRANTIES ARE EXPRESSLY DISCLAIMED.
+* TO THE MAXIMUM EXTENT PERMITTED NOT PROHIBITED BY LAW, NEITHER RENESAS 
+* ELECTRONICS CORPORATION NOR ANY OF ITS AFFILIATED COMPANIES SHALL BE LIABLE 
+* FOR ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES FOR
+* ANY REASON RELATED TO THIS SOFTWARE, EVEN IF RENESAS OR ITS AFFILIATES HAVE
+* BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+* Renesas reserves the right, without notice, to make changes to this software
+* and to discontinue the availability of this software. By using this software,
+* you agree to the additional terms and conditions found by accessing the 
+* following link:
+* http://www.renesas.com/disclaimer *
+* Copyright (C) 2012 Renesas Electronics Corporation. All rights reserved.    
+*******************************************************************************/
+/*******************************************************************************
+* File Name     : adc_oneshot_demo_main.c
+* Version       : 1.0
+* Device(s)     : RX63N
+* Tool-Chain    : Renesas RX Standard Toolchain 1.0.0
+* OS            : None
+* H/W Platform  : YRDKRX63N
+* Description   : This sample demonstrates use of the 12-bit A/D converter (S12ADC).
+*                 The S12ADC is set up for one-shot reading of channel AN002.
+*                 AN002 is connected to the potentiometer VR1 on the YRDKRX63N board.  
+*                 Each time SW1 is pressed the S12ADC is started and the ADC reading
+*                 is recorded and displayed on the LCD.
+* Operation     : 1. Build and download the sample code to the YRDK.
+*
+*                 2. Click 'Reset Go' to start the software.
+*         
+*                 3. The debug LCD will show the name of the sample along with
+*                    instructions directing you to adjust pot VR1 and then 
+*                    press SW1.
+*
+*                 4. The current ADC value, in decimal format, and the voltage that
+*                    represents are displayed.
+*                      
+*******************************************************************************/         
+/*******************************************************************************
+* History : DD.MM.YYYY     Version     Description
+*         : 15.02.2012     1.00        First release
+*******************************************************************************/
+
+/*******************************************************************************
+Includes   <System Includes> , "Project Includes"
+*******************************************************************************/
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include "r_switches.h"
+#include <stdbool.h>
+#include "platform.h"
+#include "timer_adc.h"
+#include "flash_led.h"
+
+//#include "flash_led.h"
+#include "cmt_periodic_multi.h"
+
+/*******************************************************************************
+Prototypes for local functions
+*******************************************************************************/
+//void display_results (uint16_t adc_counts);
+
+
+
+volatile bool g_sw1_press = false;
+volatile bool g_sw2_press = false;
+volatile bool g_sw3_press = false;
+int mode = 1;
+int stwatch = 0;
+/*******************************************************************************
+* Function name: main
+* Description  : Main program function. Initializes the peripherals used in the
+*                demo and executes a loop that reads the ADC and updates the 
+*                display once for each press of switch 1. 
+* Arguments    : none
+* Return value : none
+*******************************************************************************/
+char Year1000, Year100, Year10, Year1, Mon10, Mon1, Day10, Day1, Day, Hour10, Hour1, Min10, Min1, Sec10, Sec1;
+
+void InitTimer(void);
+void DisplayTime(void);
+void GetTime(void);
+void stopwatch(void);
+
+void main(void)
+{
+	
+	cmt_init(); /* Initialize the CMT unit for application timing tasks. */ 
+
+    R_SWITCHES_Init(); /* Prepare the board switches for use. */
+	
+    int i;
+	
+    lcd_initialize();
+	lcd_clear();
+    InitTimer();
+	RTC.RCR2.BIT.START = 1;
+while(1){	
+	if (mode == 1){
+		lcd_clear();
+        while(1){
+		 if (mode != 1) break;
+		 
+         DisplayTime();
+         for (i = 0; i < 100000; i++){}
+		 
+	    }
+	} 
+	
+	if (mode == 2){
+		//lcd_clear();
+		stopwatch(); 
+	   /* while(1){
+		  
+		  
+	     
+          //for (int j = 0; j < 100000; j++){}
+	    }*/
+	}
+	
+	if (mode == 3){
+	    lcd_clear();
+		lcd_display(LCD_LINE1, "Set Alarm");
+		while(1){
+		 if (mode != 3) break;
+	     
+	    // for (int k = 0; k < 100000; k++){}
+	    } 
+	}
+	
+    
+}
+}
+   
+
+/*******************************************************************************
+* Function name: display_results
+* Description  : Converts ADC counts to volts value and shows both on the LCD
+* Arguments    : uint16_t adc_counts: current reading from ADC
+* Return value : none
+*******************************************************************************/
+
+void InitTimer(void){
+ //Set date and time on RTC
+
+   RTC.RCR2.BIT.START = 0; //Write 0 to start bit in RCR2
+   while(RTC.RCR2.BIT.START == 1){} //Wait for start bit to clear to 0
+   RTC.RCR2.BIT.HR24 = 1; //RTC operates in 24 hour mode
+   RTC.RCR2.BIT.RESET = 1; //Write 1 to Reset bit in RCR2
+
+   RTC.RYRCNT.WORD = 0x0016; //Set year, month, day of
+   RTC.RMONCNT.BYTE = 0x01; //week, date, hour, minute,
+   RTC.RDAYCNT.BYTE = 0x18; //second to 2015 Oct 21st
+   RTC.RWKCNT.BYTE = 0x01; //Tue 12:00:00
+   RTC.RHRCNT.BYTE = 0x12;
+   RTC.RMINCNT.BYTE = 0x00;
+   RTC.RSECCNT.BYTE = 0x00;
+
+   RTC.RCR2.BIT.START = 1; //Set start bit to 1 in RCR2
+   while(RTC.RCR2.BIT.START == 0){} //Wait for start bit to set to 1
+   //Set carry interrupt for use later when reading time from RTC
+   IEN(RTC,COUNTUP) = 0; //Disable carry interrupt in ICU
+   RTC.RCR1.BIT.CIE = 1; //Enable carry interrupt in the RTC
+   }
+
+
+void DisplayTime(void){
+    char buffer [30];
+    const char	*DayNames [7] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+    GetTime();
+    lcd_display(LCD_LINE1, "Display time");
+    sprintf((char *)buffer, "20%d%d %d%d / %d%d", Year10,Year1,Mon10,Mon1,Day10,Day1);
+    lcd_display(LCD_LINE2, buffer);
+    lcd_display(LCD_LINE3, DayNames [Day]);
+    sprintf((char *)buffer, "%d%d:%d%d:%d%d",Hour10,Hour1,Min10,Min1,Sec10,Sec1);
+    lcd_display(LCD_LINE4, buffer);
+	
+}
+
+
+void GetTime(void){
+    do {
+    IR(RTC,COUNTUP) = 0; //Clear the Carry Flag
+    Year10 = RTC.RYRCNT.BIT.YR10;
+    Year1 = RTC.RYRCNT.BIT.YR1;
+    Mon10 = RTC.RMONCNT.BIT.MON10;
+    Mon1 = RTC.RMONCNT.BIT.MON1;
+    Day10 = RTC.RDAYCNT.BIT.DATE10;
+    Day1 = RTC.RDAYCNT.BIT.DATE1;
+    Day = RTC.RWKCNT.BYTE;
+    Hour10 = RTC.RHRCNT.BIT.HR10;
+    Hour1 = RTC.RHRCNT.BIT.HR1;
+    Min10 = RTC.RMINCNT.BIT.MIN10;
+    Min1 = RTC.RMINCNT.BIT.MIN1;
+    Sec10 = RTC.RSECCNT.BIT.SEC10;
+    Sec1 = RTC.RSECCNT.BIT.SEC1;
+    } while(IR(RTC,COUNTUP) == 1);
+    }
+
+void stopwatch(void){
+	int temp1 = RTC.RSECCNT.BIT.SEC1;
+	int hour10,hour1,min10,min1,sec10,sec1;
+    hour10 = hour1 = min10 = min1 = sec10 = sec1 = 0;
+	char buff [30];
+	lcd_display(LCD_LINE1, "StopWatch");
+  //  sprintf((char *)buff, "%d%d:%d%d:%d%d",hour10,hour1,min10,min1,sec10,sec1);
+	//lcd_display(LCD_LINE4, buff);
+	while(1){ 
+	 if(stwatch == 1 && mode == 2){
+	   if (((int)RTC.RSECCNT.BIT.SEC1 - temp1) != 0)  sec1++;
+	   
+	   if (sec1==10){
+		 sec1 = 0;
+		 sec10+1;}
+		
+	   if (sec10==7){
+		 sec10 = 0;
+		 min1+1;}
+		 
+	   if (min1==7){
+		 min1 = 0;
+		 min10+1;}
+		  
+	   if (min10==7){
+		 min10 = 0;
+		 hour1+1;}
+		  
+	   if (hour1==7){
+		 hour1 = 0;
+		 hour10+1;}
+		  
+	   if (hour10==7){
+		 hour10 = 0;}
+		  
+		
+	   temp1 = RTC.RSECCNT.BIT.SEC1;
+	  
+	      lcd_display(LCD_LINE1, "StopWatch");
+		  sprintf((char *)buff, "%d%d:%d%d:%d%d",hour10,hour1,min10,min1,sec10,sec1);
+    	  lcd_display(LCD_LINE4, buff);
+		  
+	}
+	   //if(stwatch == 1) lcd_display(LCD_LINE6, "Paused");
+	 //  if(stwatch == 3) lcd_clear;
+	  //lcd_clear;
+   	 for (int m = 0; m < 100000; m++){}
+	 lcd_clear;
+	   if (mode != 2) break;   
+	    
+	}
+}
+
+
+void Set_Alarm(void){
+	
+	if(RTC.RCR2.BIT.START == 1){
+		//Disable ICU alarm interrupt
+		IEN(RTC,ALARM) = 0;
+		IEN(RTC,PRD) = 1;
+		
+		//Set alarm
+		RTC.RSECAR.BYTE = 0x15;
+		RTC.RMINAR.BYTE = 0x00;
+		RTC.RHRAR.BYTE = 0x12;
+		
+		RTC.RSECAR.BIT.ENB = 0x01;
+		RTC.RMINAR.BIT.ENB = 0x01;
+		RTC.RHRAR.BIT.ENB = 0x01;
+		
+		//Enable RTC alarm
+		RTC.RCR1.BIT.AIE = 1;
+		while(RTC.RCR1.BIT.AIE == 0) ;//Wait for it to be written before continuing
+	}	
+}
+
+
+void sw1_callback(void)
+{
+    g_sw1_press = true; /* The switch was pressed. */
+    if (mode == 1){
+	mode = 2;}
+	else if(mode == 2){
+	mode = 3;} 
+	else if(mode == 3){
+	mode = 1;
+	
+	} 
+	 
+} /* End of function sw1_callback() */
+
+
+/******************************************************************************
+* Function name: sw2_callback
+* Description  : Callback function that is executed when SW2 is pressed.
+*                Called by sw2_isr in r_switches.c
+* Arguments    : none
+* Return value : none
+******************************************************************************/
+void sw2_callback(void)
+{
+    if (stwatch == 0){
+      //g_sw2_press = true; /* The switch was pressed. */
+	  stwatch = 1;}
+	if (stwatch == 1){
+        stwatch = 0;       /* The switch was pressed again. */
+	 }
+	
+	
+	g_sw2_press = true;
+} /* End of function sw2_callback() */
+
+
+/******************************************************************************
+* Function name: sw3_callback
+* Description  : Callback function that is executed when SW3 is pressed.
+*                Called by sw3_isr in r_switches.c
+* Arguments    : none
+* Return value : none
+******************************************************************************/
+void sw3_callback(void)
+{
+    g_sw3_press = true; /* The switch was pressed. */
+} /* End of function sw3_callback() */
+
